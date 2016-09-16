@@ -128,13 +128,13 @@ row.names(fold_change_control) = species
 
 p_values_control = matrix(data=NA,nrow=length(species),ncol=length(species))
 
-for(i in species)
+for(i in "p1")
 {
   speciesi_areas = retrieveAreasForSpecies(i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
-  for(j in species)
+  for(j in "hi")
   {
     if(i != j)
     {
@@ -251,7 +251,7 @@ fold_change = matrix(data=NA,nrow=5,ncol=5)
 colnames(fold_change) = species
 row.names(fold_change) = species
 
-fold_change = fold_change_control-fold_change_benzo
+fold_change = fold_change_benzo-fold_change_control
 
 #create the breaks
 bk2 = unique(c(seq(min(fold_change, na.rm = TRUE), -0.001, length=9), 0, seq(0.001, max(fold_change, na.rm = TRUE), length=9)))
@@ -269,7 +269,7 @@ hm.parameters <- list(fold_change,
                       show_rownames = T, show_colnames = T,
                       clustering_method = "average",
                       cluster_rows = FALSE, cluster_cols = FALSE,
-                      filename = "../Figures/fold_change_difference_heat_map.png")
+                      filename = "../Figures/fold_change_difference_heat_map.tiff")
 
 # To draw the heat map on screen 
 do.call("pheatmap", hm.parameters)
