@@ -113,6 +113,27 @@ for( i in 1:length(species))
   ggsave(paste0("../Figures/",species_labels[i],".jpg"),width=8,height=2.5)
 }
 
+#-------------------------------------------------------
+# Check if benzopyrene changes growth of species grown 
+# alone
+#-------------------------------------------------------
+p_values_benzo_alone = c()
+
+for(i in species)
+{
+  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
+  speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
+  
+  speciesi_cntrl = speciesi_areas[speciesi_areas$paired_species=='none' & speciesi_areas$Metadata_Media=='cntrl',]$AreaShape_Area
+  speciesi_benzo = speciesi_areas[speciesi_areas$paired_species=='none' & speciesi_areas$Metadata_Media=='benzo',]$AreaShape_Area
+  p = wilcox.test(speciesi_cntrl,speciesi_benzo,alternative="two.sided")
+
+  p_values_benzo_alone = c(p_values_benzo_alone,p$p.value)
+
+}
+
+adjustedPs = p.adjust(p_values_benzo_alone, method = "fdr")
 
 #-------------------------------------------------------
 # Heat maps
@@ -128,13 +149,13 @@ row.names(fold_change_control) = species
 
 p_values_control = matrix(data=NA,nrow=length(species),ncol=length(species))
 
-for(i in "p1")
+for(i in species)
 {
   speciesi_areas = retrieveAreasForSpecies(i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
-  for(j in "hi")
+  for(j in species)
   {
     if(i != j)
     {
@@ -144,7 +165,7 @@ for(i in "p1")
       speciesi_paired_cntrl = mean(speciesi_paired_cntrls)
       p = wilcox.test(speciesi_none_cntrls,speciesi_paired_cntrls,alternative="two.sided")
 
-      fold_change_control[row.names(fold_change_control) == j, colnames(fold_change_control) == i] = speciesi_paired_cntrl/speciesi_none_cntrl
+      fold_change_control[row.names(fold_change_control) == j, colnames(fold_change_control) == i] = mean(speciesi_paired_cntrls/speciesi_none_cntrl)
       p_values_control[row.names(fold_change_control) == j, colnames(fold_change_control) == i] = p$p.value
     }
   }
@@ -157,12 +178,12 @@ row.names(p_values_control_ajstd) = species
 write.table(p_values_control_ajstd, file="p_values_control_ajstd.txt", quote = FALSE, sep="\t")
 
 #create the breaks
-bk2 = unique(c(seq(min(fold_change_control, na.rm = TRUE), 0.99, length=9), 1, seq(1.01, max(fold_change_control, na.rm = TRUE), length=10)))
+bk2 = unique(c(seq(min(fold_change_control, na.rm = TRUE), 0.99, length=19), 1, seq(1.01, max(fold_change_control, na.rm = TRUE), length=20)))
 
 #set different color vectors for each interval
-col1 = colorRampPalette(c("blue", 'white'))(9) #set the order of greys
+col1 = colorRampPalette(c("blue", 'white'))(19) #set the order of greys
 col2 <- rep("white", 1)
-col3 = colorRampPalette(c("white", "red"))(9)
+col3 = colorRampPalette(c("white", "red"))(20)
 colors2 <- c(col1, col2, col3)
 
 
@@ -213,7 +234,7 @@ for(i in species)
       speciesi_paired_benzo = mean(speciesi_paired_benzos)
       p = wilcox.test(speciesi_none_benzos,speciesi_paired_benzos,alternative="two.sided")
       
-      fold_change_benzo[row.names(fold_change_benzo) == j, colnames(fold_change_benzo) == i] = speciesi_paired_benzo/speciesi_none_benzo
+      fold_change_benzo[row.names(fold_change_benzo) == j, colnames(fold_change_benzo) == i] = mean(speciesi_paired_benzos/speciesi_none_benzo)
       p_values_benzo[row.names(fold_change_benzo) == j, colnames(fold_change_benzo) == i] = p$p.value
     }
   }
@@ -226,7 +247,7 @@ row.names(p_values_benzo_ajstd) = species
 write.table(p_values_benzo_ajstd, file="p_values_benzo_ajstd.txt", quote = FALSE, sep="\t")
 
 #create the breaks
-bk2 = unique(c(seq(min(fold_change_benzo, na.rm = TRUE), 0.99, length=9), 1, seq(1.01, max(fold_change_benzo, na.rm = TRUE), length=10)))
+bk2 = unique(c(seq(min(fold_change_benzo, na.rm = TRUE), 0.99, length=19), 1, seq(1.01, max(fold_change_benzo, na.rm = TRUE), length=20)))
 
 #draw heatmap
 fontsize = 12
@@ -254,7 +275,7 @@ row.names(fold_change) = species
 fold_change = fold_change_benzo-fold_change_control
 
 #create the breaks
-bk2 = unique(c(seq(min(fold_change, na.rm = TRUE), -0.001, length=9), 0, seq(0.001, max(fold_change, na.rm = TRUE), length=9)))
+bk2 = unique(c(seq(min(fold_change, na.rm = TRUE), -0.001, length=19), 0, seq(0.001, max(fold_change, na.rm = TRUE), length=20)))
 
 #draw heatmap
 fontsize = 12
@@ -275,3 +296,41 @@ hm.parameters <- list(fold_change,
 do.call("pheatmap", hm.parameters)
 
 
+#-------------------------------------------------------
+# Compare fold change distributions
+#-------------------------------------------------------
+p_values_comparison = matrix(data=NA,nrow=length(species),ncol=length(species))
+colnames(p_values_comparison) = species
+row.names(p_values_comparison) = species
+
+for(i in species)
+{
+  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
+  speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
+  
+  for(j in species)
+  {
+    if(i != j)
+    {
+      speciesi_none_cntrls = speciesi_areas[speciesi_areas$paired_species=='none' & speciesi_areas$Metadata_Media=='cntrl',]$AreaShape_Area
+      speciesi_none_cntrl = mean(speciesi_none_cntrls)
+      speciesi_paired_cntrls = speciesi_areas[speciesi_areas$paired_species==j & speciesi_areas$Metadata_Media=='cntrl',]$AreaShape_Area
+      foldChanges_cntrl = speciesi_paired_cntrls / speciesi_none_cntrl
+      
+      speciesi_none_benzos = speciesi_areas[speciesi_areas$paired_species=='none' & speciesi_areas$Metadata_Media=='benzo',]$AreaShape_Area
+      speciesi_none_benzo = mean(speciesi_none_cntrls)
+      speciesi_paired_benzos = speciesi_areas[speciesi_areas$paired_species==j & speciesi_areas$Metadata_Media=='benzo',]$AreaShape_Area
+      foldChanges_benzo = speciesi_paired_benzos / speciesi_none_benzo
+      
+      p = wilcox.test(foldChanges_cntrl,foldChanges_benzo,alternative="two.sided")
+      p_values_comparison[row.names(p_values_comparison) == j, colnames(p_values_comparison) == i] = p$p.value
+    }
+  }
+}
+
+adjustedPsc = p.adjust(p_values_comparison, method = "fdr")
+p_values_comparison_ajstd = matrix(adjustedPsc,nrow=length(species),ncol=length(species))
+colnames(p_values_comparison_ajstd) = species
+row.names(p_values_comparison_ajstd) = species
+write.table(p_values_comparison_ajstd, file="p_values_comparison_ajstd.txt", quote = FALSE, sep="\t")
