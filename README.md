@@ -8,7 +8,7 @@ strain can be "p14" (P. aeruginosa PA14), "p1" (P. aeruginosa PA01), "s" (S. aur
 replicate_ID ranges from 0001 to 0006.
 
 ## Analysis
-The comma-delimited file "EditedObjects.csv" is the output from (CellProfiler)[http://cellprofiler.org/] of the analysis of the images. 
+The comma-delimited file "EditedObjects.csv" is the output from [CellProfiler](http://cellprofiler.org/) of the analysis of the images. 
 The R script "analyzeColonySizes.R" contains all the code to analyze the data in "EditedObjects.csv".
 
 ## Figures
