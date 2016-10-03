@@ -2,7 +2,9 @@
 Data and analysis of microbial interactions that change in the presence of benzopyrene.
 
 ## Images
-The images of colonies at 2x are stored here with the naming schema <media_condition>_<strain1>-<strain2>_<replicate_ID>
+The images of colonies at 2x are stored here with the naming schema 
+
+|media_condition|_|strain1|-|strain2|_|replicate_ID|
 
 media_condition can be either "cntrl" or "benzo".
 
