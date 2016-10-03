@@ -2,15 +2,17 @@
 Data and analysis of microbial interactions that change in the presence of benzopyrene.
 
 ## Images
-The images of colonies at 2x are stored here with the naming schema 
+The images of colonies at 2x are stored here with the naming schema:
 
-|media_condition|_|strain1|-|strain2|_|replicate_ID|
+|media_condition| _ |strain1| - |strain2| _ |replicate_ID|.jpg
 
 media_condition can be either "cntrl" or "benzo".
 
 strain can be "p14" (P. aeruginosa PA14), "p1" (P. aeruginosa PA01), "s" (S. aureus), "hi" (H. influenzae"), or "hp" (H. parainfluenzae)
 
 replicate_ID ranges from 0001 to 0006.
+
+For example "benzo_hi-hp_0000.jpg".
 
 ## Analysis
 The comma-delimited file "EditedObjects.csv" is the output from [CellProfiler](http://cellprofiler.org/) of the analysis of the images. 
