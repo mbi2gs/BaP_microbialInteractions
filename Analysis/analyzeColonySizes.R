@@ -1,18 +1,21 @@
 #-------------------------------------------------------
 # Read in data extracted from images by CellProfiler
 #-------------------------------------------------------
-
 library(ggplot2)
 library(reshape2)
 library(dplyr)
-
 
 #-------------------------------------------------------
 # Read in data
 #-------------------------------------------------------
 colonyInfo = read.table('EditedObjects.csv',sep=',',header=T,row.names=NULL)
 ci = select(colonyInfo,ImageNumber,ObjectNumber,Metadata_Media,Metadata_Left,Metadata_Right,AreaShape_Area,AreaShape_Center_X)
-ci
+
+colonyInfoS = read.table('EditedObjects_self.csv',sep=',',header=T,row.names=NULL)
+cis = select(colonyInfoS,ImageNumber,ObjectNumber,Metadata_Media,Metadata_Left,Metadata_Right,AreaShape_Area,AreaShape_Center_X)
+
+colonyInfoM = read.table('EditedObjects_membrane.csv',sep=',',header=T,row.names=NULL)
+cim = select(colonyInfoM,ImageNumber,MembraneStatus,ObjectNumber,Metadata_Media,Metadata_Left,Metadata_Right,AreaShape_Area,AreaShape_Center_X)
 
 #-------------------------------------------------------
 # Helper functions
@@ -47,14 +50,14 @@ keepLeftOrRight <- function(areadf,LoR)
   return(onlyLeftAreas)
 }
 
-retrieveAreasForSpecies <- function(speciesName)
+retrieveAreasForSpecies <- function(dataset, speciesName)
 {
-  areas_left = ci[ci$Metadata_Left == speciesName,]
+  areas_left = dataset[dataset$Metadata_Left == speciesName,]
   areas_left = keepLeftOrRight(areas_left,'L')
   areas_left = mutate(areas_left, description = paste0(Metadata_Media,'_',Metadata_Right))
   areas_left = mutate(areas_left, paired_species = Metadata_Right)
     
-  areas_right = ci[ci$Metadata_Right == speciesName,]
+  areas_right = dataset[dataset$Metadata_Right == speciesName,]
   areas_right = keepLeftOrRight(areas_right,'R')
   areas_right = mutate(areas_right,description = paste0(Metadata_Media,'_',Metadata_Left))
   areas_right = mutate(areas_right, paired_species = Metadata_Left)
@@ -67,10 +70,10 @@ retrieveAreasForSpecies <- function(speciesName)
 # Bar plots
 #-------------------------------------------------------
 ## Get areas for standards
-std_areas = retrieveAreasForSpecies('standard')
+std_areas = retrieveAreasForSpecies(ci,'standard')
 std_areas = select(std_areas,description,AreaShape_Area,Metadata_Media)
 std_area = mean(std_areas$AreaShape_Area)
-sqcm = .0625 # the standard area is 0.254cm * 0.254cm = 6.4516 sq. mm
+sqcm = .0645 # the standard area is 0.254cm * 0.254cm = 6.4516 sq. mm
 
 
 species = c("p14","p1","s","hi","hp")
@@ -81,7 +84,7 @@ yU = c(0.5,0.6,0.225,0.04,0.075)
 for( i in 1:length(species))
 {
   ## Get areas for species i and plot
-  areas = retrieveAreasForSpecies(species[i])
+  areas = retrieveAreasForSpecies(ci,species[i])
   areas = select(areas,description,AreaShape_Area,Metadata_Media)
   areas$AreaShape_Area = areas$AreaShape_Area * sqcm / std_area
   
@@ -121,7 +124,7 @@ p_values_benzo_alone = c()
 
 for(i in species)
 {
-  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = retrieveAreasForSpecies(ci,i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
@@ -151,7 +154,7 @@ p_values_control = matrix(data=NA,nrow=length(species),ncol=length(species))
 
 for(i in species)
 {
-  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = retrieveAreasForSpecies(ci,i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
@@ -220,7 +223,7 @@ p_values_benzo = matrix(data=NA,nrow=length(species),ncol=length(species))
 
 for(i in species)
 {
-  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = retrieveAreasForSpecies(ci,i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
@@ -305,7 +308,7 @@ row.names(p_values_comparison) = species
 
 for(i in species)
 {
-  speciesi_areas = retrieveAreasForSpecies(i)
+  speciesi_areas = retrieveAreasForSpecies(ci,i)
   speciesi_areas = select(speciesi_areas,description,AreaShape_Area,Metadata_Media,paired_species)
   speciesi_areas$AreaShape_Area = speciesi_areas$AreaShape_Area * sqcm / std_area
   
@@ -334,3 +337,95 @@ p_values_comparison_ajstd = matrix(adjustedPsc,nrow=length(species),ncol=length(
 colnames(p_values_comparison_ajstd) = species
 row.names(p_values_comparison_ajstd) = species
 write.table(p_values_comparison_ajstd, file="p_values_comparison_ajstd.txt", quote = FALSE, sep="\t")
+
+
+#-------------------------------------------------------
+# Compare growth of species grown alone to those 
+# grown next to self
+#-------------------------------------------------------
+## Get areas for standards
+std_areasS = retrieveAreasForSpecies(cis,'standard')
+std_areasS = select(std_areasS,description,AreaShape_Area,Metadata_Media)
+std_areaS = mean(std_areasS$AreaShape_Area)
+sqcmS = .0645 # the standard area is 0.254cm * 0.254cm = 6.4516 sq. mm
+
+species = c("p14","p1","s","hi","hp")
+species_labels = c("P. aeruginosa PA14","P. aeruginosa PA01","S. aureus","H. influenzae","H. parainfluenzae")
+pvals_aloneVpaired = c()
+
+for( i in 1:length(species))
+{
+  ## Get areas for species i and plot
+  areas = retrieveAreasForSpecies(cis,species[i])
+  areas = areas %>% select(description,AreaShape_Area,Metadata_Media) %>%
+    filter(Metadata_Media == 'cntrl')
+  areas$AreaShape_Area = areas$AreaShape_Area * sqcmS / std_areaS
+  areas$description = factor(areas$description,levels=c('cntrl_none',paste0('cntrl_',species[i])))
+  
+  # Check if difference is significant
+  alone = areas %>% filter(description == 'cntrl_none') %>% select(AreaShape_Area)
+  paired = areas %>% filter(description == paste0('cntrl_',species[i])) %>% select(AreaShape_Area)
+  p = wilcox.test(alone$AreaShape_Area,paired$AreaShape_Area,alternative="two.sided")
+  pvals_aloneVpaired = c(pvals_aloneVpaired,p$p.value)
+  
+  # Plot
+  p1 = ggplot(areas, aes(x=factor(description), y=AreaShape_Area)) +
+    geom_boxplot(outlier.size=-1,size=1,aes(color=description)) +
+    scale_colour_brewer(palette = 'Set1') +
+    scale_x_discrete(labels=c('Alone','With Self')) +
+    geom_jitter(color='grey',alpha=0.7,size=2, width = 0.3) +
+    ylab(expression(paste("Area (mm"^bold("2"),")"))) +
+    theme_bw() +
+    ggtitle(species_labels[i]) +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust=1,size=14), axis.title.x = element_blank(),legend.position="none", plot.title = element_text(hjust = 0.5))
+  print(p1)
+  ggsave(paste0('..\\Figures\\alone_or_pairedWself_',species[i],'.jpg'),width=3,height=4)
+}
+
+adjustedPs = p.adjust(pvals_aloneVpaired, method = "fdr")
+print(adjustedPs)
+
+#-------------------------------------------------------
+# Compare growth of species grown on either side of 
+# a semi-permiable membrane
+#-------------------------------------------------------
+# Use same standards from 'cis' data set
+
+species = c("p1","hp")
+species_labels = c("P. aeruginosa PA01","H. parainfluenzae")
+ylims = c(0.15,0.02)
+
+for( i in 1:length(species))
+{
+  ## Get areas for species i and plot
+  areas = retrieveAreasForSpecies(cim,species[i])
+  areas = areas %>% select(description,MembraneStatus,AreaShape_Area,Metadata_Media) 
+  areas$AreaShape_Area = areas$AreaShape_Area * sqcmS / std_areaS
+  
+  areas$description = paste0(areas$MembraneStatus,areas$Metadata_Media)
+  
+  # Plot
+  p1 = ggplot(areas, aes(x=factor(description), y=AreaShape_Area)) +
+    geom_boxplot(outlier.size=-1,size=1,aes(color=Metadata_Media)) +
+    scale_colour_brewer(palette = "Set1") +
+    geom_jitter(color='grey',alpha=0.7,size=2, width = 0.3) +
+    ylab(expression(paste("Area (mm"^bold("2"),")"))) +
+    theme_bw() +
+    ylim(0,ylims[i]) +
+    ggtitle(species_labels[i]) +
+    theme(axis.text.x = element_text(angle = 90,vjust=0.5,hjust=1,size=14), axis.title.x = element_blank(),legend.position="none", plot.title = element_text(hjust = 0.5))
+  print(p1)
+  ggsave(paste0('..\\Figures\\membrane_',species[i],'.jpg'),width=5,height=3.5)
+  
+  # Check if membrane causes significant difference in colony area
+  MembraneBenzo = areas %>% filter(MembraneStatus == 'membrane' && Metadata_Media == 'benzo')
+  MembraneCntrl = areas %>% filter(MembraneStatus == 'membrane' && Metadata_Media == 'cntrl')
+  NoneBenzo = areas %>% filter(MembraneStatus == 'none' && Metadata_Media == 'benzo')
+  NoneCntrl = areas %>% filter(MembraneStatus == 'none' && Metadata_Media == 'cntrl')
+  pbenzo = wilcox.test(alone$AreaShape_Area,paired$AreaShape_Area,alternative="two.sided")
+  pcntrl = wilcox.test(alone$AreaShape_Area,paired$AreaShape_Area,alternative="two.sided")
+  print(species_labels[i])
+  print(pbenzo)
+  print(pcntrl)
+}
+
